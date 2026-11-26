@@ -43,3 +43,12 @@ body:has(.casino) { margin: 0; background: #101814; }
 .decision-details table { width: 100%; border-collapse: collapse; }
 .decision-details th,.decision-details td { padding: .35rem; text-align: left; border-bottom: 1px solid #526354; }
 .decision-details td { font-variant-numeric: tabular-nums; }
+.performance { max-width: 47rem; margin: 1rem auto; border-top: 1px solid #576655; padding: 1rem 0; }
+.performance summary { cursor: pointer; color: #e8cb8e; font-weight: bold; }
+.performance-filters { display: flex; gap: .75rem; flex-wrap: wrap; }
+.performance-filters label { display: grid; gap: .25rem; }
+.performance select { padding: .35rem; font: inherit; }
+.performance table { width: 100%; border-collapse: collapse; }
+.performance th,.performance td { text-align: right; padding: .4rem .15rem; border-bottom: 1px solid #526354; }
+.performance th:first-child { text-align: left; }
+.performance-scroll { overflow-x: auto; }

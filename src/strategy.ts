@@ -39,3 +39,24 @@ export function recommend(cards: readonly StandardCard[], dealer: StandardCard, 
     ? 'A dealer 2 or 3 is too strong to justify standing on hard 12. Drawing has the better average return.'
     : 'Against this strong upcard, drawing to improve your hard total is worth the bust risk.' }
 }
+
+export function decisionNote(cards: readonly StandardCard[], dealer: StandardCard, choice: Action, advice: ReturnType<typeof recommend>) {
+  const hand = scoreHand(cards)
+  const ranks = cards.map(card => card.value).join(' + ')
+  const context = `${ranks} gives you ${hand.soft ? 'soft' : 'hard'} ${hand.total} against the dealer’s ${dealer.value}.`
+  const move = { hit: 'Hit', stand: 'Stand', double: 'Double down', split: 'Split' }[advice.action]
+  let reason = advice.reason
+  if (advice.action === 'split') {
+    const pair = total([cards[0]])
+    if (pair === 8) reason = 'Splitting breaks up hard 16 and gives each 8 a chance to draw to 18.'
+    else if (pair === 11) reason = 'Each ace gets one more card. A ten-value draw makes 21 on that hand.'
+    else reason = `Against this upcard, starting two hands with ${pair} each earns more on average than playing the pair together as ${hand.total}.`
+  } else if (choice === 'split') {
+    const pair = total([cards[0]])
+    if (pair === 10) reason = 'Splitting gives up a made 20. Keeping it wins against every dealer total from 17 through 19.'
+    else if (pair === 5) reason = 'Together your fives make 10, so a ten-value draw makes 20. Splitting leaves each hand starting at just 5.'
+    else reason = `Keep the ${hand.total} together. Against this upcard, a second wager starting from ${pair} has a lower average return.`
+  }
+  const verdict = choice === advice.action ? 'Correct. ' : ''
+  return `${verdict}${context} ${move}. ${reason}`
+}

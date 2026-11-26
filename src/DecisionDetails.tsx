@@ -7,7 +7,7 @@ export function DecisionDetails({ round, legal, choice, recommended }: {
 }) {
   const hand = round.hands[round.active]
   const math = decisionMath(hand.cards, round.dealer[0], legal, Math.floor(round.balance / hand.wager), 4 - round.hands.length)
-  return <details className="decision-details" open>
+  return <details className="decision-details">
     <summary>Decision math</summary>
     <p>Estimated net chips per {hand.wager}-chip wager, averaged over repeated plays. Higher is better. A negative value means an average loss.</p>
     <table><thead><tr><th>Move</th><th>Expected net chips</th></tr></thead>

@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { createShoe } from './deck'
 import { legalActions, openingBet, play, startingBalance, startRound, total, type Action, type Round } from './dealer'
 import { PlayingCard } from './PlayingCard'
-import { recommend } from './strategy'
+import { decisionNote, recommend } from './strategy'
 import { DecisionDetails } from './DecisionDetails'
+import { Performance } from './PerformancePanel'
+import { describeDecision, historyPrefix, loadHistory, type Decision } from './performance'
 import './casino.css'
 
 const labels = { hit: 'Hit', stand: 'Stand', double: 'Double down', split: 'Split' }
@@ -11,10 +13,26 @@ const labels = { hit: 'Hit', stand: 'Stand', double: 'Double down', split: 'Spli
 export function GameController() {
   const [round, setRound] = useState<Round | null>(null)
   const [choice, setChoice] = useState<Action | null>(null)
+  const [stats, setStats] = useState(() => {
+    try { return { history: loadHistory(), sessionOnly: false } }
+    catch { return { history: [] as Decision[], sessionOnly: true } }
+  })
   const actions = round ? legalActions(round) : []
   const advice = round && choice ? recommend(round.hands[round.active].cards, round.dealer[0], actions) : null
   const balance = round?.balance ?? startingBalance
   const needsRefill = balance < openingBet
+
+  function choose(action: Action) {
+    if (!round || choice || !actions.includes(action)) return
+    const cards = round.hands[round.active].cards
+    const dealer = round.dealer[0]
+    const record = describeDecision(cards, dealer, recommend(cards, dealer, actions).action, action)
+    let sessionOnly = stats.sessionOnly
+    try { localStorage.setItem(historyPrefix + crypto.randomUUID(), JSON.stringify(record)) }
+    catch { sessionOnly = true }
+    setStats(previous => ({ history: [...previous.history, record], sessionOnly }))
+    setChoice(action)
+  }
 
   function dealRound() {
     const shoe = round && !needsRefill && round.shoe.length > 104 ? round.shoe : createShoe(8)
@@ -48,20 +66,21 @@ export function GameController() {
       <section className="table-controls" aria-label="Table controls">
         <p role="status">{round?.result ?? (round ? `Playing hand ${round.active + 1}.` : 'Ready to deal.')}</p>
         {choice && advice && round ? <section aria-label="Strategy feedback">
-          <p role="status"><strong>{choice === advice.action ? 'Correct.' : 'Basic strategy recommends ' + labels[advice.action] + '.'}</strong> You chose {labels[choice]}. {advice.reason}</p>
-          <DecisionDetails round={round} legal={actions} choice={choice} recommended={advice.action} />
+          <p role="status">{decisionNote(round.hands[round.active].cards, round.dealer[0], choice, advice)}</p>
+          {choice !== advice.action && <DecisionDetails round={round} legal={actions} choice={choice} recommended={advice.action} />}
           <button onClick={() => {
             setRound(play(round, choice))
             setChoice(null)
           }}>Continue</button>
         </section> : actions.length ? <div className="moves">
-          {actions.filter(action => action !== 'split').map(action => <button key={action} onClick={() => setChoice(action)}>{labels[action]}</button>)}
-          <button disabled={!actions.includes('split')} onClick={() => setChoice('split')}>Split</button>
+          {actions.filter(action => action !== 'split').map(action => <button key={action} onClick={() => choose(action)}>{labels[action]}</button>)}
+          <button disabled={!actions.includes('split')} onClick={() => choose('split')}>Split</button>
         </div> : <button onClick={dealRound}>{needsRefill ? 'Start fresh with 200 chips' : round ? 'Next round' : 'Deal'} · {openingBet} chips</button>}
         {!!actions.length && !choice && !actions.includes('split') && (
           <p className="split-note">To split, you need two equal-value cards, enough chips to match the wager, and fewer than four hands.</p>
         )}
       </section>
+      <Performance {...stats} />
     </div>
   )
 }
